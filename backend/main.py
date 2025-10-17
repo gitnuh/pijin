@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, Path
+from fastapi import FastAPI, Depends, HTTPException, Path, Body
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, create_engine, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 import uvicorn
 
 DATABASE_URL = "sqlite:///./flashcards.db"
@@ -14,6 +16,7 @@ Base = declarative_base()
 # ---------------------
 # Database Models
 # ---------------------
+
 class Deck(Base):
     __tablename__ = "decks"
     deck_id = Column(Integer, primary_key=True, index=True)
@@ -53,8 +56,8 @@ class FlashcardCreate(FlashcardBase):
 class FlashcardRead(FlashcardBase):
     card_id: int
     deck_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         orm_mode = True
@@ -64,6 +67,14 @@ class FlashcardRead(FlashcardBase):
 # FastAPI setup
 # ---------------------
 app = FastAPI(title="Smart Study Flashcards API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -79,6 +90,20 @@ def get_db():
 # ---------------------
 # CRUD Endpoints
 # ---------------------
+
+@app.post("/decks/", response_model=dict)
+def create_deck(deck: dict = Body(...), db: Session = Depends(get_db)):
+    new_deck = Deck(**deck)
+    db.add(new_deck)
+    db.commit()
+    db.refresh(new_deck)
+    return {"deck_id": new_deck.deck_id, "title": new_deck.title, "description": new_deck.description}
+
+@app.get("/decks/", response_model=list[dict])
+def get_decks(db: Session = Depends(get_db)):
+    decks = db.query(Deck).all()
+    return [{"deck_id": d.deck_id, "title": d.title, "description": d.description} for d in decks]
+
 
 @app.post("/decks/{deck_id}/flashcards/", response_model=FlashcardRead)
 def create_flashcard(deck_id: int, flashcard: FlashcardCreate, db: Session = Depends(get_db)):
