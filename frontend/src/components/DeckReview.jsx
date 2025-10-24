@@ -5,13 +5,8 @@ export default function DeckReview({ flashcards }) {
   const [index, setIndex] = useState(0);
   const card = flashcards[index];
 
-  const next = () => {
-    if (index < flashcards.length - 1) setIndex(index + 1);
-  };
-
-  const prev = () => {
-    if (index > 0) setIndex(index - 1);
-  };
+  const next = () => index < flashcards.length - 1 && setIndex(index + 1);
+  const prev = () => index > 0 && setIndex(index - 1);
 
   if (!flashcards.length)
     return (
@@ -19,12 +14,14 @@ export default function DeckReview({ flashcards }) {
     );
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      {/* FlashCard display */}
-      <FlashCard question={card.question} answer={card.answer} />
+    <div className="flex flex-col items-center justify-between min-h-screen">
+      <div className="flex-grow flex items-center justify-center w-full">
+        <div className="w-11/12 max-w-2xl">
+          <FlashCard question={card.question} answer={card.answer} />
+        </div>
+      </div>
 
-      {/* Navigation */}
-      <div className="flex items-center gap-4 mt-4">
+      <div className="flex items-center gap-4 mt-4 mb-8">
         <button
           onClick={prev}
           disabled={index === 0}
