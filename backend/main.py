@@ -241,5 +241,41 @@ Text:
     return {"flashcards": cleaned}
 
 
+
+@app.post("/chatbot")
+async def chatbot(prompt: str = Body(..., embed=True)):
+    instruction = """
+You are a friendly chatbot and will answer the user's question briefly.
+Output strictly in this JSON format:
+
+{
+    "response": "..."
+}
+
+Text:
+<<<START>>>
+{user_prompt}
+<<<END>>>
+""".replace("{user_prompt}", prompt)
+
+    result = ollama.generate(
+        model="llama3.2",
+        prompt=instruction,
+        format="json",
+    )
+
+    raw = result.get("response", "").strip()
+
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Model returned invalid JSON"
+        )
+
+    return {"response": parsed.get("response", "")}
+
+
 if __name__ == "__main__":
     uvicorn.run(app)
